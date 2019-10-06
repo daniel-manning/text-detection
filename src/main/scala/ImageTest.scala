@@ -3,11 +3,16 @@ import java.io.File
 
 import detection.CannyEdgeDetector
 import javax.imageio.ImageIO
+import models.{ColourARGB, Coordinates}
 
 object ImageTest extends App {
+  val neighbourhood = List((-1, -1), (-1, 0), (-1, 1),
+                           ( 0, -1), ( 0, 0), ( 0, 1),
+                           ( 1, -1), ( 1, 0), ( 1, 1))
+
   val frame = ImageIO.read(new File(args(0)))
 
-  def testImageOutput(low:Float, high:Float) = {
+  def testImageOutput(low:Float, high:Float): BufferedImage = {
     println(s"-------------low: ${low} ------ high: ${high}")
     println("-------------starting edge detection---------------")
     val detector = new CannyEdgeDetector()
@@ -29,6 +34,8 @@ object ImageTest extends App {
 
     println("-------------output edge detection image---------------")
     ImageIO.write(rgbImage, "jpg", new File(s"${args(0)}_${low}_${high}.jpg"))
+
+    rgbImage
   }
 
   def getDetectedEdges(path:String, low:Float = 0.5f, high:Float = 1.0f):BufferedImage = {
@@ -47,28 +54,34 @@ object ImageTest extends App {
   def strokeWidthTransform(edgeImage:BufferedImage) = {
     val raster = edgeImage.getData
     val boundingRectangle = raster.getBounds
-    for{
+    val dataBuffer = raster.getDataBuffer
+    println(s"DataBuffer: Datatype-${dataBuffer.getDataType} size-${dataBuffer.getSize} offsets-${dataBuffer.getOffsets}")
+    val a: List[(Coordinates, ColourARGB)] = for{
       x <- (boundingRectangle.x until boundingRectangle.x + boundingRectangle.width).toList
       y <- (boundingRectangle.y until boundingRectangle.y + boundingRectangle.height).toList
-    } yield something(raster, x, y)
+    } yield (Coordinates(x,y), ColourARGB(edgeImage.getRGB(x, y)))
 
+    //a.foreach(println)
+
+    a.filter(_._2.isBlack).foreach(println)
     //
+
+    calculateGradientLine(Coordinates(604,96), a)
   }
 
-  def something(raster:Raster, x: Int, y: Int) = {
-    println(s"***************** x: ${x} y: ${y}")
-    var values = Array.ofDim[Double](raster.getNumBands)
-    val rets = raster.getPixel(x,y, values)
-    println(s"***************** rets: **************")
-    rets.foreach(l => print(s"${l}, "))
-    print('\n')
-    println(s"***************** values ***************")
-    values.foreach(l => print(s"${l}, "))
-    print('\n')
+  def calculateGradientLine(coordinates: Coordinates, pixels: List[(Coordinates, ColourARGB)]) = {
+
+
+    val neighbourCoordinates = neighbourhood.map(l => Coordinates(coordinates.x + l._1, coordinates.y + l._2))
+
+    println("---calculateGradientLine---")
+    pixels
+      .filter(_._2.isBlack)
+      .filter(c => neighbourCoordinates.contains(c._1))
+      .map(_._1)
+      .foreach(println)
   }
 
-  //strokeWidthTransform(getDetectedEdges(""))
-
-  testImageOutput(0.5f, 1.0f)
+  strokeWidthTransform(testImageOutput(0.5f, 1.0f))
 
 }

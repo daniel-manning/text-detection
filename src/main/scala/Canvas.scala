@@ -1,9 +1,9 @@
 import java.awt.{Color, Graphics, Graphics2D, Panel}
 
 class Canvas extends Panel {
-  var centerColor = Color.yellow
+  var centerColor: Color = Color.yellow
 
-  var darts = List[Dart]()
+  var darts: List[Dart] = List[Dart]()
 
   override def paintComponents(g: Graphics) {
 
